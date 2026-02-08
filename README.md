@@ -1,16 +1,13 @@
-## Hi there 👋
+# Axil Protocol V1
 
-<!--
-**AxilProtocolV1/AxilProtocolV1** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
+Autonomous AI Intent Layer on Monad. Focused on high-performance x402 infrastructure and extreme gas optimization.
 
-Here are some ideas to get you started:
+### Engineering & Proof
+- Standard: x402 Infrastructure
+- Optimization: 1,000,000 runs (via-IR enabled)
+- Mainnet: 0x91EaaC36c73346B8F2Eb894552e98a9bd74413a4
+- License: MIT
 
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
+### Links
+- [Twitter](https://x.com/AxilProtocol)
+- [Project Repo](https://github.com/AxilProtocolV1/AxilProtocolV1)
