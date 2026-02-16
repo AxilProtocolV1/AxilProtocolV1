@@ -4,7 +4,6 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {AxilProtocolV1} from "../src/AxilProtocolV1.sol";
 
-
 /**
  * @title Security Tests
  * @author Axil Protocol Team
@@ -12,7 +11,7 @@ import {AxilProtocolV1} from "../src/AxilProtocolV1.sol";
  */
 contract SecurityTest is Test {
     AxilProtocolV1 public axil;
-    
+
     uint256 constant SIGNER_KEY = 0xA1;
     address public signer;
     address public agent = address(0x8);
@@ -41,7 +40,8 @@ contract SecurityTest is Test {
         uint128 salt = 555;
         bytes32 packedIntent = axil.packIntent(1, 1);
 
-        bytes32 structHash = keccak256(abi.encode(EXECUTE_TYPEHASH, merchant, user, packedIntent, realAmount, deadline, salt, agent));
+        bytes32 structHash =
+            keccak256(abi.encode(EXECUTE_TYPEHASH, merchant, user, packedIntent, realAmount, deadline, salt, agent));
         bytes32 finalHash = keccak256(abi.encodePacked("\x19\x01", _getDomainSeparator(), structHash));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(SIGNER_KEY, finalHash);
         bytes memory signature = abi.encodePacked(r, s, v);
@@ -60,7 +60,8 @@ contract SecurityTest is Test {
         uint128 salt = 777;
         bytes32 packedIntent = axil.packIntent(1, 1);
 
-        bytes32 structHash = keccak256(abi.encode(EXECUTE_TYPEHASH, merchant, user, packedIntent, amount, deadline, salt, agent));
+        bytes32 structHash =
+            keccak256(abi.encode(EXECUTE_TYPEHASH, merchant, user, packedIntent, amount, deadline, salt, agent));
         bytes32 finalHash = keccak256(abi.encodePacked("\x19\x01", _getDomainSeparator(), structHash));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(SIGNER_KEY, finalHash);
         bytes memory signature = abi.encodePacked(r, s, v);
@@ -77,12 +78,14 @@ contract SecurityTest is Test {
      * @dev Internal helper to generate EIP-712 domain separator
      */
     function _getDomainSeparator() internal view returns (bytes32) {
-        return keccak256(abi.encode(
-            keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-            keccak256(bytes("AxilProtocolV1")),
-            keccak256(bytes("1")),
-            block.chainid,
-            address(axil)
-        ));
+        return keccak256(
+            abi.encode(
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256(bytes("AxilProtocolV1")),
+                keccak256(bytes("1")),
+                block.chainid,
+                address(axil)
+            )
+        );
     }
 }

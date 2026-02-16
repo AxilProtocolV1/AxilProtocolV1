@@ -4,7 +4,6 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {AxilProtocolV1} from "../src/AxilProtocolV1.sol";
 
-
 /**
  * @title Initialization Tests
  * @author Axil Protocol Team
@@ -12,14 +11,14 @@ import {AxilProtocolV1} from "../src/AxilProtocolV1.sol";
  */
 contract InitializationTest is Test {
     AxilProtocolV1 public axil;
-    
+
     address public admin = address(0x1);
     address public signer = address(0x2);
     address public sweepReceiver = address(0x3);
     address public validatorPool = address(0x4);
     address public dexBroker = address(0x5);
     bytes32 public salt = keccak256("AXIL_TEST");
-    
+
     /**
      * @notice Test 1.1: Verifies successful deployment and role assignment
      */
@@ -33,7 +32,7 @@ contract InitializationTest is Test {
         assertEq(axil.i_validatorPool(), validatorPool);
         assertEq(axil.i_dexBroker(), dexBroker);
     }
-    
+
     /**
      * @notice Test 1.2: Verifies zero address validation in constructor
      */
@@ -45,13 +44,13 @@ contract InitializationTest is Test {
         vm.expectRevert(AxilProtocolV1.Axil__ZeroAddressNotAllowed.selector);
         new AxilProtocolV1(admin, signer, address(0), validatorPool, dexBroker, salt);
     }
-    
+
     /**
      * @notice Test 1.3: Verifies default system configuration values
      */
     function test_Config_InitialValues() public {
         axil = new AxilProtocolV1(admin, signer, sweepReceiver, validatorPool, dexBroker, salt);
-        
+
         // Fixed: Unpack all 9 values from SystemConfig struct
         (
             address signerAddr,
@@ -64,11 +63,11 @@ contract InitializationTest is Test {
             uint32 burnCooldown,
             uint32 maxRetries
         ) = axil.config();
-        
+
         // Check address fields
         assertEq(signerAddr, signer);
         assertEq(sweepAddr, sweepReceiver);
-        
+
         // Check numeric values
         assertEq(minAmount, 0.001 ether);
         assertEq(maxClaim, 5 ether);

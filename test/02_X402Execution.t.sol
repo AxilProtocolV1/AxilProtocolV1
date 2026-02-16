@@ -4,7 +4,6 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {AxilProtocolV1} from "../src/AxilProtocolV1.sol";
 
-
 /**
  * @title X402 Execution Tests
  * @author Axil Protocol Team
@@ -12,7 +11,7 @@ import {AxilProtocolV1} from "../src/AxilProtocolV1.sol";
  */
 contract X402ExecutionTest is Test {
     AxilProtocolV1 public axil;
-    
+
     uint256 constant SIGNER_KEY = 0xA1;
     address public signer;
     address public agent = address(0x8);
@@ -45,25 +44,19 @@ contract X402ExecutionTest is Test {
         bytes32 packedIntent = axil.packIntent(1, 1);
 
         // Generate EIP-712 struct hash with perfectly aligned uint128 types
-        bytes32 structHash = keccak256(abi.encode(
-            EXECUTE_TYPEHASH, 
-            merchant, 
-            user, 
-            packedIntent, 
-            amount, 
-            deadline, 
-            salt, 
-            agent
-        ));
+        bytes32 structHash =
+            keccak256(abi.encode(EXECUTE_TYPEHASH, merchant, user, packedIntent, amount, deadline, salt, agent));
 
         // Calculate domain separator matching the contract's EIP712 implementation
-        bytes32 domainSeparator = keccak256(abi.encode(
-            keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-            keccak256(bytes("AxilProtocolV1")),
-            keccak256(bytes("1")),
-            block.chainid,
-            address(axil)
-        ));
+        bytes32 domainSeparator = keccak256(
+            abi.encode(
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256(bytes("AxilProtocolV1")),
+                keccak256(bytes("1")),
+                block.chainid,
+                address(axil)
+            )
+        );
 
         // Sign the final digest
         bytes32 finalHash = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
@@ -74,9 +67,9 @@ contract X402ExecutionTest is Test {
         vm.prank(agent);
         // FIXED: Changed from executeX402 to execute (correct function name)
         axil.execute{value: amount}(merchant, user, packedIntent, deadline, salt, signature);
-        
+
         assertTrue(axil.isIntentExecuted(packedIntent));
-        
+
         uint256 expectedMerchantShare = amount - ((amount * 100) / 10000); // Verify 1% fee deduction
         assertEq(address(merchant).balance, expectedMerchantShare);
     }
