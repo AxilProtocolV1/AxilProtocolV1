@@ -69,6 +69,13 @@ v          v            v            v     �
 [Merchant] [MON Burn]   [Reward Pool][Validator/Broker] [Keepers]
 (Instant)  (Deflation)  (Vested)     (Ecosystem)        (Gas Incentives)
 
+Just days before the Monad Multiverse deadline, my hardware suffered a critical failure — my GPU, HDD, and RAM literally burned out. I had to scramble to finish the deployment, finalize the X402 logic, and run 10M fuzzing iterations on a dying machine. But the code is live, and the tests are green.
+​If awarded, the prize will be immediately reinvested:
+​Hardware Upgrade: Building a professional-grade development rig to handle Monad’s high-performance requirements.
+​Axil Ecosystem: I will allocate $2,000 to be distributed among the first Agent X402 users/developers.
+​Roadmap: Over the next 2 months, I will transform this protocol into the most powerful settlement engine for the Monad Mainnet.
+​Thank you for believing in Axil Protocol.
+
 ### Links
 - [Twitter](https://x.com/AxilProtocol)
 - [Project Repo](https://github.com/AxilProtocolV1/AxilProtocolV1)
