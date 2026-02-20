@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {AxilProtocolV1} from "../src/AxilProtocolV1.sol";
 
 /**
  * @title Apocalypse Security Tests
  * @author Axil Protocol Team
- * @notice EXTREME STRESS TEST - ALL ATTACKS SIMULTANEOUSLY
- * @dev Tests the contract under maximum possible stress
- *
- *
- *            APOCALYPSE TEST SUITE
- *
- *    🔴 1,000,000 transactions in 1 block
- *    🔴 1 Billion MON per transaction
- *    🔴 All attack vectors simultaneously
- *    🔴 Random signatures + random amounts + random salts
- *    🔴 24 hours of continuous fuzzing
- *
+ * @notice Extreme stress test suite for AxilProtocolV1
+ * @dev Tests contract behavior under maximum possible stress
+ * 
+ * ╔══════════════════════════════════════════════════════════╗
+ * ║                    APOCALYPSE TEST SUITE                 ║
+ * ╠══════════════════════════════════════════════════════════╣
+ * ║  Test 1: 1 Million Transactions in One Block             ║
+ * ║  Test 2: 24 Hours of Continuous Fuzzing                  ║
+ * ║  Test 3: Memory Explosion Attack                         ║
+ * ║  Test 4: Chain Reorganization Attack                     ║
+ * ║  Test 5: Frontrunning Protection                         ║
+ * ╚══════════════════════════════════════════════════════════╝
  */
 contract ApocalypseTest is Test {
     AxilProtocolV1 public axil;
@@ -42,10 +42,17 @@ contract ApocalypseTest is Test {
     function setUp() public {
         signer = vm.addr(SIGNER_KEY);
         vm.startPrank(address(0x1));
-        axil = new AxilProtocolV1(address(0x1), signer, address(0x3), address(0x4), address(0x5), keccak256("SALT"));
+        axil = new AxilProtocolV1(
+            address(0x1), 
+            signer, 
+            address(0x3), 
+            address(0x4), 
+            address(0x5), 
+            keccak256("SALT")
+        );
         vm.stopPrank();
 
-        vm.deal(agent, MAX_MON_SUPPLY * 100); // 100B MON
+        vm.deal(agent, MAX_MON_SUPPLY * 100); // 100B MON for stress tests
     }
 
     function _getDomainSeparator() internal view returns (bytes32) {
@@ -61,13 +68,14 @@ contract ApocalypseTest is Test {
     }
 
     /**
-     * @notice TEST 7.1: 1 MILLION TRANSACTIONS IN ONE BLOCK
+     * @notice TEST 1: 1 Million Transactions in One Block
      * @dev Simulates Monad's parallel execution with 1M transactions
      */
     function test_Apocalypse_MillionTransactions() public {
         uint256 gasStart = gasleft();
 
-        for (uint256 i = 0; // 1000 iterations of 1000 = 1M i < 1000; i++) {
+        // Fixed: Corrected loop syntax
+        for (uint256 i = 0; i < 1000; i++) {
             for (uint256 j = 0; j < 1000; j++) {
                 uint256 id = i * 1000 + j + 1;
 
@@ -94,7 +102,7 @@ contract ApocalypseTest is Test {
             }
         }
 
-        uint256 gasUsed = gasStart - gasleft();
+uint256 gasUsed = gasStart - gasleft();
         emit ApocalypseSurvived("1M transactions processed");
 
         // Each transaction should be efficient
@@ -102,10 +110,15 @@ contract ApocalypseTest is Test {
     }
 
     /**
-     * @notice TEST 7.2: EXTREME FUZZING - 24 HOURS WORTH
-     * @dev 10 million random combinations
+     * @notice TEST 2: 24 Hours of Continuous Fuzzing
+     * @dev 10 million random combinations simulating 24 hours of attacks
      */
-    function testFuzz_Apocalypse_24Hours(uint128 amount, uint128 salt, uint256 timestamp, uint8 attackType) public {
+    function testFuzz_Apocalypse_24Hours(
+        uint128 amount, 
+        uint128 salt, 
+        uint256 timestamp, 
+        uint8 attackType
+    ) public {
         // Bound all values to realistic ranges
         amount = uint128(bound(amount, 0.001 ether, MAX_MON_SUPPLY));
         salt = uint128(bound(salt, 1, type(uint128).max));
@@ -139,9 +152,15 @@ contract ApocalypseTest is Test {
         }
 
         // Try to execute - should either succeed or revert safely
-        (bool success,) = address(axil).call{value: amount}(
+        (bool success, ) = address(axil).call{value: amount}(
             abi.encodeWithSelector(
-                axil.execute.selector, merchant, user, packedIntent, deadline, salt, abi.encodePacked(bytes32(0))
+                axil.execute.selector, 
+                merchant, 
+                user, 
+                packedIntent, 
+                deadline, 
+                salt, 
+                abi.encodePacked(bytes32(0))
             )
         );
 
@@ -153,15 +172,14 @@ contract ApocalypseTest is Test {
     }
 
     /**
-     * @notice TEST 7.3: MEMORY EXPLOSION ATTACK
-     * @dev Attempt to cause memory overflow
+     * @notice TEST 3: Memory Explosion Attack
+     * @dev Attempt to cause memory overflow and test OOG protection
      */
     function test_Apocalypse_MemoryExplosion() public {
-        // Try to fill memory with huge arrays
         uint256 gasStart = gasleft();
 
         for (uint256 i = 0; i < 100; i++) {
-            // Create huge arrays in memory
+            // Create huge arrays in memory to stress the system
             uint256[] memory hugeArray = new uint256[](1_000_000);
             hugeArray[0] = i;
 
@@ -178,7 +196,7 @@ contract ApocalypseTest is Test {
     }
 
     /**
-     * @notice TEST 7.4: CHAIN REORGANIZATION ATTACK
+     * @notice TEST 4: Chain Reorganization Attack
      * @dev Simulate chain reorg with same intents
      */
     function test_Apocalypse_ChainReorg() public {
@@ -188,6 +206,7 @@ contract ApocalypseTest is Test {
         bytes32 packedIntent = axil.packIntent(99, 99);
 
         bytes memory signature = _createSignature(merchant, user, packedIntent, amount, deadline, salt, agent);
+        
         // Block 100 - first execution
         vm.roll(100);
         vm.prank(agent);
@@ -196,7 +215,7 @@ contract ApocalypseTest is Test {
         // Simulate chain reorg - block 100 becomes invalid
         vm.roll(150); // New chain height
 
-        // Try to execute again - should fail (intent already used)
+// Try to execute again - should fail (intent already used)
         vm.prank(agent);
         vm.expectRevert(AxilProtocolV1.Axil__IntentAlreadyExecuted.selector);
         axil.execute{value: amount}(merchant, user, packedIntent, deadline, salt, signature);
@@ -205,8 +224,8 @@ contract ApocalypseTest is Test {
     }
 
     /**
-     * @notice TEST 7.5: FRONTRUNNING PROTECTION
-     * @dev Simulate frontrunning attempts
+     * @notice TEST 5: Frontrunning Protection
+     * @dev Simulate frontrunning attempts and verify protection
      */
     function test_Apocalypse_Frontrunning() public {
         uint128 amount = 1000 ether;
@@ -219,7 +238,7 @@ contract ApocalypseTest is Test {
         // Frontrunner tries to use higher gas price
         vm.txGasPrice(100 gwei);
         vm.prank(attacker);
-        (bool success,) = address(axil).call{value: amount}(
+        (bool success, ) = address(axil).call{value: amount}(
             abi.encodeWithSelector(axil.execute.selector, merchant, user, packedIntent, deadline, salt, signature)
         );
 
