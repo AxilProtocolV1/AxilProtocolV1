@@ -37,15 +37,8 @@ contract CoverageGapsTest is Test {
 
         // ADMIN: deploys contract and grants roles
         vm.startPrank(admin);
-        axil = new AxilProtocolV1(
-            admin,
-            signer,
-            treasury,
-            validatorPool,
-            dexBroker,
-            keccak256("SALT")
-        );
-        
+        axil = new AxilProtocolV1(admin, signer, treasury, validatorPool, dexBroker, keccak256("SALT"));
+
         // ADMIN: grants KEEPER_ROLE to keeper address
         axil.grantRole(axil.KEEPER_ROLE(), keeper);
         vm.stopPrank();
@@ -100,10 +93,10 @@ contract CoverageGapsTest is Test {
     function test_UnpackIntent() public view {
         uint128 bucket = 12345;
         uint128 mask = 67890;
-        
+
         bytes32 packed = axil.packIntent(bucket, mask);
         (uint128 unpackedBucket, uint128 unpackedMask) = axil.unpackIntent(packed);
-        
+
         assertEq(bucket, unpackedBucket, "Bucket should match after pack/unpack");
         assertEq(mask, unpackedMask, "Mask should match after pack/unpack");
     }
@@ -142,7 +135,7 @@ contract CoverageGapsTest is Test {
         vm.prank(keeper);
         // Empty arrays are valid (lengths match = 0)
         axil.autoBatchClaim(emptyAccounts, emptyIntents, 1000);
-        
+
         assertTrue(true, "Empty arrays processed successfully");
     }
 
@@ -195,7 +188,7 @@ contract CoverageGapsTest is Test {
 
     function test_GrantMerchantRole() public {
         bytes32 merchantRole = axil.MERCHANT_ROLE();
-        
+
         assertFalse(axil.hasRole(merchantRole, user), "User should not have role initially");
 
         vm.prank(admin);
@@ -226,34 +219,20 @@ contract CoverageGapsTest is Test {
     // SECTION 5: Modifiers and Edge Cases
     // ─────────────────────────────────────────────────────────────────────────
 
-function test_ValidateIntentWithInvalidMask() public {
+    function test_ValidateIntentWithInvalidMask() public {
         bytes32 invalidIntent = bytes32(0);
-        
+
         vm.deal(address(this), 1 ether);
         vm.prank(address(this));
-        
+
         vm.expectRevert(AxilProtocolV1.Axil__InvalidIntent.selector);
-        axil.execute{value: 1 ether}(
-            user,
-            user,
-            invalidIntent,
-            block.timestamp + 1000,
-            12345,
-            hex""
-        );
+        axil.execute{value: 1 ether}(user, user, invalidIntent, block.timestamp + 1000, 12345, hex"");
     }
 
     function test_ValidAmountModifier() public {
         vm.prank(address(this));
         vm.expectRevert(AxilProtocolV1.Axil__InvalidAmount.selector);
-        axil.execute{value: 0}(
-            user,
-            user,
-            keccak256("test"),
-            block.timestamp + 1000,
-            12345,
-            hex""
-        );
+        axil.execute{value: 0}(user, user, keccak256("test"), block.timestamp + 1000, 12345, hex"");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -267,7 +246,7 @@ function test_ValidateIntentWithInvalidMask() public {
         axil.lastBurnRetryBlock();
         axil.getSystemStats();
         axil.version();
-        
+
         assertTrue(true, "All functions should now be covered");
     }
 
@@ -277,10 +256,10 @@ function test_ValidateIntentWithInvalidMask() public {
 
     function test_ReceiveFunction() public {
         uint256 balanceBefore = address(axil).balance;
-        
-        (bool success, ) = address(axil).call{value: 1 ether}("");
+
+        (bool success,) = address(axil).call{value: 1 ether}("");
         assertTrue(success, "ETH transfer should succeed");
-        
+
         assertEq(address(axil).balance, balanceBefore + 1 ether, "Balance should increase");
     }
 }

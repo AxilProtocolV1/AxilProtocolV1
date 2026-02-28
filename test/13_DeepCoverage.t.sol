@@ -9,7 +9,7 @@ import {AxilProtocolV1} from "../src/AxilProtocolV1.sol";
  * @author Axil Protocol Team
  * @notice Deep coverage test suite for AxilProtocolV1 edge cases
  * @dev Covers unpackIntent edge cases, burn mechanism, batch processing, and event validation
- * 
+ *
  * Test Categories:
  * 1. unpackIntent Edge Cases - Zero and maximum value inputs
  * 2. Batch Processing - Modifier behavior and gas threshold handling
@@ -54,15 +54,8 @@ contract DeepCoverageTest is Test {
         signer = vm.addr(SIGNER_KEY);
 
         vm.startPrank(admin);
-        axil = new AxilProtocolV1(
-            admin,
-            signer,
-            treasury,
-            validatorPool,
-            dexBroker,
-            keccak256("SALT")
-        );
-        
+        axil = new AxilProtocolV1(admin, signer, treasury, validatorPool, dexBroker, keccak256("SALT"));
+
         axil.grantRole(axil.KEEPER_ROLE(), keeper);
         axil.updateConfig(AxilProtocolV1.ConfigKey.MaxRetries, 1, address(0));
         vm.stopPrank();
@@ -95,17 +88,16 @@ contract DeepCoverageTest is Test {
     /**
      * @dev Builds an EIP-712 signature for execute transaction
      */
-    function _buildExecuteSignature(
-        address recipient,
-        bytes32 intentId,
-        uint128 amount,
-        uint256 deadline,
-        uint128 salt
-    ) internal view returns (bytes memory) {
+    function _buildExecuteSignature(address recipient, bytes32 intentId, uint128 amount, uint256 deadline, uint128 salt)
+        internal
+        view
+        returns (bytes memory)
+    {
         bytes32 structHash = keccak256(
             abi.encode(
-
-keccak256("Execute(address merchant,address user,bytes32 packedIntent,uint128 amount,uint256 deadline,uint128 salt,address agent)"),
+                keccak256(
+                    "Execute(address merchant,address user,bytes32 packedIntent,uint128 amount,uint256 deadline,uint128 salt,address agent)"
+                ),
                 admin,
                 recipient,
                 intentId,
@@ -170,13 +162,13 @@ keccak256("Execute(address merchant,address user,bytes32 packedIntent,uint128 am
     function test_BatchProcessingModifier() public {
         address[] memory emptyAccounts;
         bytes32[] memory emptyIntents;
-        
+
         vm.prank(keeper);
         axil.autoBatchClaim(emptyAccounts, emptyIntents, 1000);
-        
+
         vm.prank(admin);
         axil.toggleBatchProcessing();
-        
+
         vm.prank(keeper);
         vm.expectRevert(AxilProtocolV1.Axil__BatchProcessingPaused.selector);
         axil.autoBatchClaim(emptyAccounts, emptyIntents, 1000);
@@ -193,16 +185,16 @@ keccak256("Execute(address merchant,address user,bytes32 packedIntent,uint128 am
     function test_BurnCooldown() public {
         vm.prank(admin);
         axil.updateConfig(AxilProtocolV1.ConfigKey.BurnCooldown, 60, address(0));
-        
+
         vm.prank(admin);
         axil.autoRetryBurn(0);
         vm.prank(admin);
         axil.autoRetryBurn(0);
-        
+
         vm.warp(block.timestamp + 61);
         vm.prank(admin);
         axil.autoRetryBurn(0);
-        
+
         assertTrue(true, "Burn cooldown functions correctly");
     }
 
@@ -233,20 +225,20 @@ keccak256("Execute(address merchant,address user,bytes32 packedIntent,uint128 am
         uint256 deadline = block.timestamp + 1000;
         uint128 amount = 100 ether;
         uint128 salt = 12345;
-        
+
         bytes memory signature = _buildExecuteSignature(user, intentId, amount, deadline, salt);
 
         vm.deal(address(this), amount);
         vm.prank(address(this));
-        
-        uint256 fee = amount / 100;           // 1% fee
-        uint256 burnShare = fee / 5;           // 20% of fee = 0.2% of amount
-        
+
+        uint256 fee = amount / 100; // 1% fee
+        uint256 burnShare = fee / 5; // 20% of fee = 0.2% of amount
+
         vm.expectEmit(true, true, false, true);
         emit BurnExecuted(burnShare, true);
-        
+
         axil.execute{value: amount}(admin, user, intentId, deadline, salt, signature);
-        
+
         assertTrue(axil.isIntentExecuted(intentId), "Intent should be marked as executed");
     }
 
@@ -261,20 +253,20 @@ keccak256("Execute(address merchant,address user,bytes32 packedIntent,uint128 am
     function test_InternalClaimViaBatch() public {
         _accrueRewards(user, REWARD_AMOUNT);
         vm.roll(block.number + VESTING_BLOCKS + 1);
-        
-        (uint128 totalAmount, , , ) = axil.getRewardVault(user);
+
+        (uint128 totalAmount,,,) = axil.getRewardVault(user);
         assertTrue(totalAmount > 0, "User should have accrued rewards");
-        
+
         address[] memory accounts = new address[](1);
         accounts[0] = user;
-        
+
         bytes32[] memory intents = new bytes32[](1);
         intents[0] = keccak256("claim");
-        
+
         vm.prank(keeper);
         axil.autoBatchClaim(accounts, intents, 1);
-        
-        (uint128 remaining, , , ) = axil.getRewardVault(user);
+
+        (uint128 remaining,,,) = axil.getRewardVault(user);
         assertTrue(remaining < totalAmount, "Rewards should be partially claimed");
     }
 
@@ -300,29 +292,26 @@ keccak256("Execute(address merchant,address user,bytes32 packedIntent,uint128 am
      */
     function test_BatchGasThreshold() public {
         address[5] memory testUsers = [
-            address(0x1001), address(0x1002), address(0x1003),
-            address(0x1004), address(0x1005)
+            address(0x1001), address(0x1002), address(0x1003), address(0x1004), address(0x1005)
+        ];
 
-
-];
-        
-        for (uint i = 0; i < 5; i++) {
+        for (uint256 i = 0; i < 5; i++) {
             vm.deal(testUsers[i], 100 ether);
             _accrueRewards(testUsers[i], REWARD_AMOUNT / 2);
         }
         vm.roll(block.number + VESTING_BLOCKS + 1);
-        
+
         address[] memory accounts = new address[](5);
         bytes32[] memory intents = new bytes32[](5);
-        
-        for (uint i = 0; i < 5; i++) {
+
+        for (uint256 i = 0; i < 5; i++) {
             accounts[i] = testUsers[i];
             intents[i] = keccak256(abi.encodePacked("intent", i));
         }
-        
+
         vm.prank(keeper);
         axil.autoBatchClaim(accounts, intents, 1_000_000);
-        
+
         assertTrue(true, "Batch processing with gas threshold executed");
     }
 

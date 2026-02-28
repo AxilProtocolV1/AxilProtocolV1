@@ -9,7 +9,7 @@ import {AxilProtocolV1} from "../src/AxilProtocolV1.sol";
  * @author Axil Protocol Team
  * @notice NUCLEAR-GRADE test suite for claimWithSignature function
  * @dev Attempts to break the contract through every possible attack vector
- * 
+ *
  * ╔══════════════════════════════════════════════════════════════════╗
  * ║                        THE GAUNTLET                              ║
  * ╠══════════════════════════════════════════════════════════════════╣
@@ -59,14 +59,7 @@ contract ClaimWithSignatureTest is Test {
         signer = vm.addr(SIGNER_KEY);
 
         vm.startPrank(admin);
-        axil = new AxilProtocolV1(
-            admin,
-            signer,
-            address(0x6),
-            address(0x7),
-            address(0x8),
-            keccak256("SALT")
-        );
+        axil = new AxilProtocolV1(admin, signer, address(0x6), address(0x7), address(0x8), keccak256("SALT"));
         axil.updateConfig(AxilProtocolV1.ConfigKey.MaxClaim, MAX_CLAIM_LIMIT, address(0));
         vm.stopPrank();
 
@@ -92,7 +85,7 @@ contract ClaimWithSignatureTest is Test {
         );
     }
 
-/// @notice Builds EIP-712 signature for claim transaction
+    /// @notice Builds EIP-712 signature for claim transaction
     function _buildClaimSignature(
         address account,
         uint128 amount,
@@ -119,10 +112,12 @@ contract ClaimWithSignatureTest is Test {
         bytes32 intentId = keccak256(abi.encodePacked(block.timestamp, recipient, amount, "accrue"));
         uint256 deadline = block.timestamp + 1000;
         uint128 salt = uint128(uint256(keccak256(abi.encodePacked(block.timestamp, recipient, amount))));
-        
+
         bytes32 structHash = keccak256(
             abi.encode(
-                keccak256("Execute(address merchant,address user,bytes32 packedIntent,uint128 amount,uint256 deadline,uint128 salt,address agent)"),
+                keccak256(
+                    "Execute(address merchant,address user,bytes32 packedIntent,uint128 amount,uint256 deadline,uint128 salt,address agent)"
+                ),
                 admin,
                 recipient,
                 intentId,
@@ -132,11 +127,11 @@ contract ClaimWithSignatureTest is Test {
                 address(this)
             )
         );
-        
+
         bytes32 finalHash = keccak256(abi.encodePacked("\x19\x01", _getDomainSeparator(), structHash));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(SIGNER_KEY, finalHash);
         bytes memory signature = abi.encodePacked(r, s, v);
-        
+
         vm.deal(address(this), amount);
         vm.prank(address(this));
         axil.execute{value: amount}(admin, recipient, intentId, deadline, salt, signature);
@@ -153,7 +148,7 @@ contract ClaimWithSignatureTest is Test {
 
         bytes32 intentId = keccak256("nuclear-test-1");
         uint256 deadline = block.timestamp + 1000;
-        
+
         bytes memory signature = _buildClaimSignature(user, 0, intentId, deadline, SIGNER_KEY);
 
         uint256 originalChainId = block.chainid;
@@ -173,7 +168,7 @@ contract ClaimWithSignatureTest is Test {
 
         bytes32 intentId = keccak256("nuclear-test-2");
         uint256 deadline = block.timestamp + 1000;
-        
+
         bytes memory signature = _buildClaimSignature(user, 0, intentId, deadline, SIGNER_KEY);
 
         vm.prank(user);
@@ -189,9 +184,9 @@ contract ClaimWithSignatureTest is Test {
         _accrueRewards(user, REWARD_AMOUNT);
         vm.roll(block.number + VESTING_BLOCKS + 1);
 
-bytes32 intentId = keccak256("nuclear-test-3");
+        bytes32 intentId = keccak256("nuclear-test-3");
         uint256 deadline = block.timestamp + 1000;
-        
+
         bytes32 structHash = keccak256(
             abi.encode(
                 keccak256("Claim(address account,uint128 amount,bytes32 intentId,uint256 deadline)"),
@@ -207,7 +202,7 @@ bytes32 intentId = keccak256("nuclear-test-3");
         // Create malleated version of s
         bytes32 sMalleable = bytes32(uint256(s) ^ (1 << 255));
         bytes memory malleatedSignature = abi.encodePacked(r, sMalleable, v);
-        
+
         vm.prank(user);
         vm.expectRevert(); // Should revert with any error
         axil.claimWithSignature(REWARD_AMOUNT, intentId, deadline, malleatedSignature);
@@ -220,7 +215,7 @@ bytes32 intentId = keccak256("nuclear-test-3");
 
         bytes32 intentId = keccak256("nuclear-test-4");
         uint256 deadline = block.timestamp + 1000;
-        
+
         bytes memory signature = _buildClaimSignature(user, 0, intentId, deadline, SIGNER_KEY);
 
         vm.warp(deadline + 1);
@@ -238,14 +233,8 @@ bytes32 intentId = keccak256("nuclear-test-3");
 
         bytes32 intentId = keccak256("nuclear-test-5");
         uint256 deadline = block.timestamp + 1000;
-        
-        bytes memory maliciousSignature = _buildClaimSignature(
-            victim,
-            0,
-            intentId,
-            deadline,
-            SIGNER_KEY
-        );
+
+        bytes memory maliciousSignature = _buildClaimSignature(victim, 0, intentId, deadline, SIGNER_KEY);
 
         vm.prank(attacker);
         vm.expectRevert(AxilProtocolV1.Axil__InvalidSignature.selector);
@@ -255,7 +244,7 @@ bytes32 intentId = keccak256("nuclear-test-3");
     /// @notice 6. Should handle reentrancy attempts via malicious ERC1271 contract
     function test_Nuclear_ReentrancyViaMaliciousERC1271() public {
         MaliciousERC1271 malicious = new MaliciousERC1271();
-        
+
         vm.prank(admin);
         axil.updateConfig(AxilProtocolV1.ConfigKey.Signer, 0, address(malicious));
 
@@ -264,41 +253,32 @@ bytes32 intentId = keccak256("nuclear-test-3");
 
         bytes32 intentId = keccak256("nuclear-test-6");
         uint256 deadline = block.timestamp + 1000;
-        
-        bytes memory signature = _buildClaimSignature(
-            address(malicious),
-            0,
-            intentId,
-            deadline,
-            SIGNER_KEY
-        );
+
+        bytes memory signature = _buildClaimSignature(address(malicious), 0, intentId, deadline, SIGNER_KEY);
 
         malicious.setAttackParams(address(axil), REWARD_AMOUNT, intentId, deadline, signature);
-        
+
         // Attempt claim - should either succeed or revert without state corruption
         vm.prank(address(malicious));
-        
+
         // Use try/catch pattern instead of unchecked call
         bool success;
         bytes memory data;
-        (success, data) = address(axil).call(
-            abi.encodeWithSignature(
-                "claimWithSignature(uint128,bytes32,uint256,bytes)",
-                0,
-                intentId,
-                deadline,
-                signature
-            )
-        );
-        
+        (success, data) = address(axil)
+            .call(
+                abi.encodeWithSignature(
+                    "claimWithSignature(uint128,bytes32,uint256,bytes)", 0, intentId, deadline, signature
+                )
+            );
+
         // We don't need to use success or data - just acknowledge we got them
         assertTrue(success || !success, "Call executed");
-        
+
         // Verify contract state is consistent regardless of success
-        (uint128 remaining, , , ) = axil.getRewardVault(address(malicious));
+        (uint128 remaining,,,) = axil.getRewardVault(address(malicious));
         assertTrue(remaining <= REWARD_AMOUNT, "State should be consistent");
 
-vm.prank(admin);
+        vm.prank(admin);
         axil.updateConfig(AxilProtocolV1.ConfigKey.Signer, 0, signer);
     }
 
@@ -309,7 +289,7 @@ vm.prank(admin);
 
         bytes32 intentId = keccak256("nuclear-test-7");
         uint256 deadline = block.timestamp + 1000;
-        
+
         // Create signature with correct length but invalid data
         bytes memory garbageSignature = abi.encodePacked(bytes32(0), bytes32(0), uint8(0));
 
@@ -330,8 +310,8 @@ vm.prank(admin);
 
         vm.prank(user);
         axil.claimWithSignature(0, intentId, deadline, signature);
-        
-        (uint128 remaining, , , ) = axil.getRewardVault(user);
+
+        (uint128 remaining,,,) = axil.getRewardVault(user);
         assertEq(remaining, 0, "All rewards should be claimed");
     }
 
@@ -342,7 +322,7 @@ vm.prank(admin);
 
         bytes32 intentId = keccak256("nuclear-test-9");
         uint256 deadline = block.timestamp + 1000;
-        
+
         bytes memory signature = _buildClaimSignature(user, 0, intentId, deadline, SIGNER_KEY);
 
         vm.prank(attacker);
@@ -354,7 +334,7 @@ vm.prank(admin);
     function test_Nuclear_NoRewards() public {
         bytes32 intentId = keccak256("nuclear-test-10");
         uint256 deadline = block.timestamp + 1000;
-        
+
         bytes memory signature = _buildClaimSignature(user, 0, intentId, deadline, SIGNER_KEY);
 
         vm.prank(user);
@@ -370,27 +350,21 @@ vm.prank(admin);
 
         bytes32 intentId = keccak256("nuclear-test-11");
         uint256 deadline = block.timestamp + 1000;
-        
+
         bytes memory signature = _buildClaimSignature(user, 0, intentId, deadline, SIGNER_KEY);
 
         vm.prank(user);
         axil.claimWithSignature(0, intentId, deadline, signature);
 
-        (uint128 remaining, , , ) = axil.getRewardVault(user);
+        (uint128 remaining,,,) = axil.getRewardVault(user);
         assertEq(remaining, 0, "All rewards should be claimed despite limit");
     }
 
     /// @notice 12. Should prevent signature reuse across different contracts
     function test_Nuclear_CrossContractReuse() public {
         vm.startPrank(admin);
-        AxilProtocolV1 axil2 = new AxilProtocolV1(
-            admin,
-            signer,
-            address(0x6),
-            address(0x7),
-            address(0x8),
-            keccak256("DIFFERENT_SALT")
-        );
+        AxilProtocolV1 axil2 =
+            new AxilProtocolV1(admin, signer, address(0x6), address(0x7), address(0x8), keccak256("DIFFERENT_SALT"));
         vm.stopPrank();
 
         _accrueRewards(user, REWARD_AMOUNT);
@@ -398,10 +372,10 @@ vm.prank(admin);
 
         bytes32 intentId = keccak256("nuclear-test-12");
         uint256 deadline = block.timestamp + 1000;
-        
+
         bytes memory signature = _buildClaimSignature(user, 0, intentId, deadline, SIGNER_KEY);
 
-vm.prank(user);
+        vm.prank(user);
         vm.expectRevert(AxilProtocolV1.Axil__InvalidSignature.selector);
         axil2.claimWithSignature(0, intentId, deadline, signature);
     }
@@ -414,8 +388,8 @@ vm.prank(user);
  * @dev Implements ERC1271 with malicious reentrancy attempt
  */
 contract MaliciousERC1271 {
-    bytes4 constant internal MAGICVALUE = 0x1626ba7e;
-    
+    bytes4 internal constant MAGICVALUE = 0x1626ba7e;
+
     address public target;
     uint128 public amount;
     bytes32 public intentId;
@@ -454,13 +428,9 @@ contract MaliciousERC1271 {
     function isValidSignature(bytes32, bytes calldata) external returns (bytes4) {
         if (!attackPerformed && target != address(0)) {
             attackPerformed = true;
-            (bool success, ) = target.call(
+            (bool success,) = target.call(
                 abi.encodeWithSignature(
-                    "claimWithSignature(uint128,bytes32,uint256,bytes)",
-                    amount,
-                    intentId,
-                    deadline,
-                    signature
+                    "claimWithSignature(uint128,bytes32,uint256,bytes)", amount, intentId, deadline, signature
                 )
             );
             emit ReentrancyAttempted(success);

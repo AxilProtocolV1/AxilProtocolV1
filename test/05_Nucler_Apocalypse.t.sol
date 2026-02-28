@@ -9,7 +9,7 @@ import {AxilProtocolV1} from "../src/AxilProtocolV1.sol";
  * @author Axil Protocol Team
  * @notice Extreme stress test suite for AxilProtocolV1
  * @dev Tests contract behavior under maximum possible stress
- * 
+ *
  * ╔══════════════════════════════════════════════════════════╗
  * ║                    APOCALYPSE TEST SUITE                 ║
  * ╠══════════════════════════════════════════════════════════╣
@@ -42,14 +42,7 @@ contract ApocalypseTest is Test {
     function setUp() public {
         signer = vm.addr(SIGNER_KEY);
         vm.startPrank(address(0x1));
-        axil = new AxilProtocolV1(
-            address(0x1), 
-            signer, 
-            address(0x3), 
-            address(0x4), 
-            address(0x5), 
-            keccak256("SALT")
-        );
+        axil = new AxilProtocolV1(address(0x1), signer, address(0x3), address(0x4), address(0x5), keccak256("SALT"));
         vm.stopPrank();
 
         vm.deal(agent, MAX_MON_SUPPLY * 100); // 100B MON for stress tests
@@ -102,7 +95,7 @@ contract ApocalypseTest is Test {
             }
         }
 
-uint256 gasUsed = gasStart - gasleft();
+        uint256 gasUsed = gasStart - gasleft();
         emit ApocalypseSurvived("1M transactions processed");
 
         // Each transaction should be efficient
@@ -113,12 +106,7 @@ uint256 gasUsed = gasStart - gasleft();
      * @notice TEST 2: 24 Hours of Continuous Fuzzing
      * @dev 10 million random combinations simulating 24 hours of attacks
      */
-    function testFuzz_Apocalypse_24Hours(
-        uint128 amount, 
-        uint128 salt, 
-        uint256 timestamp, 
-        uint8 attackType
-    ) public {
+    function testFuzz_Apocalypse_24Hours(uint128 amount, uint128 salt, uint256 timestamp, uint8 attackType) public {
         // Bound all values to realistic ranges
         amount = uint128(bound(amount, 0.001 ether, MAX_MON_SUPPLY));
         salt = uint128(bound(salt, 1, type(uint128).max));
@@ -152,15 +140,9 @@ uint256 gasUsed = gasStart - gasleft();
         }
 
         // Try to execute - should either succeed or revert safely
-        (bool success, ) = address(axil).call{value: amount}(
+        (bool success,) = address(axil).call{value: amount}(
             abi.encodeWithSelector(
-                axil.execute.selector, 
-                merchant, 
-                user, 
-                packedIntent, 
-                deadline, 
-                salt, 
-                abi.encodePacked(bytes32(0))
+                axil.execute.selector, merchant, user, packedIntent, deadline, salt, abi.encodePacked(bytes32(0))
             )
         );
 
@@ -206,7 +188,7 @@ uint256 gasUsed = gasStart - gasleft();
         bytes32 packedIntent = axil.packIntent(99, 99);
 
         bytes memory signature = _createSignature(merchant, user, packedIntent, amount, deadline, salt, agent);
-        
+
         // Block 100 - first execution
         vm.roll(100);
         vm.prank(agent);
@@ -215,7 +197,7 @@ uint256 gasUsed = gasStart - gasleft();
         // Simulate chain reorg - block 100 becomes invalid
         vm.roll(150); // New chain height
 
-// Try to execute again - should fail (intent already used)
+        // Try to execute again - should fail (intent already used)
         vm.prank(agent);
         vm.expectRevert(AxilProtocolV1.Axil__IntentAlreadyExecuted.selector);
         axil.execute{value: amount}(merchant, user, packedIntent, deadline, salt, signature);
@@ -238,7 +220,7 @@ uint256 gasUsed = gasStart - gasleft();
         // Frontrunner tries to use higher gas price
         vm.txGasPrice(100 gwei);
         vm.prank(attacker);
-        (bool success, ) = address(axil).call{value: amount}(
+        (bool success,) = address(axil).call{value: amount}(
             abi.encodeWithSelector(axil.execute.selector, merchant, user, packedIntent, deadline, salt, signature)
         );
 

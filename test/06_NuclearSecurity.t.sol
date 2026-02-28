@@ -60,16 +60,9 @@ contract NuclearSecurityTest is Test {
     // ─────────────────────────────────────────────────────────────────────────
     function setUp() public {
         signer = vm.addr(SIGNER_KEY);
-        
+
         vm.startPrank(admin);
-        axil = new AxilProtocolV1(
-            admin,
-            signer,
-            address(0x3),
-            address(0x4),
-            address(0x5),
-            keccak256("SALT")
-        );
+        axil = new AxilProtocolV1(admin, signer, address(0x3), address(0x4), address(0x5), keccak256("SALT"));
         vm.stopPrank();
 
         // Fund all addresses with 1B MON each
@@ -98,7 +91,7 @@ contract NuclearSecurityTest is Test {
         );
     }
 
-/**
+    /**
      * @dev Creates an EIP-712 signature for an execute transaction
      */
     function _createSignature(
@@ -157,7 +150,8 @@ contract NuclearSecurityTest is Test {
         bytes32 packedIntent = axil.packIntent(2, 2);
 
         ReentrancyAttacker attackerContract = new ReentrancyAttacker(axil);
-        bytes memory signature = _createSignature(merchant, user, packedIntent, amount, deadline, salt, address(attackerContract));
+        bytes memory signature =
+            _createSignature(merchant, user, packedIntent, amount, deadline, salt, address(attackerContract));
 
         vm.deal(address(attackerContract), amount);
         vm.prank(address(attackerContract));
@@ -165,11 +159,12 @@ contract NuclearSecurityTest is Test {
         attackerContract.attack(merchant, user, packedIntent, deadline, salt, signature, amount);
 
         // Verify reentrancy was blocked
-        (bool success,) = address(axil).call(
-            abi.encodeWithSelector(
-                axil.execute.selector, address(0), address(0), bytes32(0), block.timestamp, 0, ""
-            )
-        );
+        (bool success,) = address(axil)
+            .call(
+                abi.encodeWithSelector(
+                    axil.execute.selector, address(0), address(0), bytes32(0), block.timestamp, 0, ""
+                )
+            );
         assertFalse(success, "Reentrancy should be blocked");
 
         emit SecurityBreachAttempt("REENTRANCY_ATTACK", true);
@@ -189,11 +184,12 @@ contract NuclearSecurityTest is Test {
         uint128 salt = 98765;
         bytes32 packedIntent = axil.packIntent(3, 3);
 
-        bytes32 structHash = keccak256(abi.encode(EXECUTE_TYPEHASH, merchant, user, packedIntent, amount, deadline, salt, agent));
+        bytes32 structHash =
+            keccak256(abi.encode(EXECUTE_TYPEHASH, merchant, user, packedIntent, amount, deadline, salt, agent));
         bytes32 finalHash = keccak256(abi.encodePacked("\x19\x01", _getDomainSeparator(), structHash));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(SIGNER_KEY, finalHash);
 
-bytes32 sModified = bytes32(uint256(s) ^ 1);
+        bytes32 sModified = bytes32(uint256(s) ^ 1);
         bytes memory maliciousSignature = abi.encodePacked(r, sModified, v);
 
         vm.prank(agent);
@@ -280,7 +276,7 @@ bytes32 sModified = bytes32(uint256(s) ^ 1);
         uint128 amount = 1000 ether;
         uint256 deadline = block.timestamp + 1000;
         uint128 salt = 44444;
-        
+
         // Intent for chain 1
         bytes32 packedIntentChain1 = axil.packIntent(7, 7);
         bytes memory signature = _createSignature(merchant, user, packedIntentChain1, amount, deadline, salt, agent);
@@ -288,16 +284,16 @@ bytes32 sModified = bytes32(uint256(s) ^ 1);
         // Execute on chain 1 (succeeds)
         vm.prank(agent);
         axil.execute{value: amount}(merchant, user, packedIntentChain1, deadline, salt, signature);
-        
+
         assertTrue(axil.isIntentExecuted(packedIntentChain1), "Intent should be executed on chain 1");
 
-    // Switch to a different chain
+        // Switch to a different chain
         uint256 originalChainId = block.chainid;
         vm.chainId(originalChainId + 1);
 
         // Fresh intent for chain 2 (different from chain 1 to avoid bitmap conflict)
         bytes32 freshIntent = axil.packIntent(8, 8);
-        
+
         // On chain 2, signature should be invalid (domain separator changed)
         vm.prank(agent);
         vm.expectRevert(AxilProtocolV1.Axil__InvalidSignature.selector);
@@ -305,7 +301,7 @@ bytes32 sModified = bytes32(uint256(s) ^ 1);
 
         // Cleanup
         vm.chainId(originalChainId);
-        
+
         emit SecurityBreachAttempt("CROSS_CHAIN_REPLAY", true);
     }
 
@@ -327,11 +323,8 @@ bytes32 sModified = bytes32(uint256(s) ^ 1);
             uint128 salt = uint128(bound(i, 1, type(uint128).max));
             bytes32 packedIntent = axil.packIntent(8, uint128(bound(i, 1, type(uint128).max)));
 
-            bytes memory invalidSignature = abi.encodePacked(
-                bytes32(uint256(i)),
-                bytes32(uint256(i + 1)),
-                uint8(bound(i % 256, 0, 255))
-            );
+            bytes memory invalidSignature =
+                abi.encodePacked(bytes32(uint256(i)), bytes32(uint256(i + 1)), uint8(bound(i % 256, 0, 255)));
 
             vm.prank(attacker);
             (bool success,) = address(axil).call{value: amount}(
@@ -391,13 +384,12 @@ bytes32 sModified = bytes32(uint256(s) ^ 1);
         bytes32[] memory executedIntents = new bytes32[](10);
 
         for (uint256 i = 1; i <= 10; i++) {
-
-uint128 bucket = uint128(bound(i, 1, type(uint128).max));
+            uint128 bucket = uint128(bound(i, 1, type(uint128).max));
             uint128 mask = uint128(bound(i * 100, 1, type(uint128).max));
             uint128 salt = uint128(bound(block.timestamp + i * 1000, 1, type(uint128).max));
-            
+
             bytes32 packedIntent = axil.packIntent(bucket, mask);
-            executedIntents[i-1] = packedIntent;
+            executedIntents[i - 1] = packedIntent;
 
             bytes memory signature = _createSignature(merchant, user, packedIntent, amount, deadline, salt, agent);
 
@@ -450,10 +442,10 @@ uint128 bucket = uint128(bound(i, 1, type(uint128).max));
      */
     function test_ReentrancyAttackerReceive() public {
         ReentrancyAttacker attackerContract = new ReentrancyAttacker(axil);
-        
+
         (bool success,) = address(attackerContract).call{value: 1 ether}("");
         assertTrue(success, "ETH transfer should succeed");
-        
+
         assertTrue(true, "Receive function covered");
     }
 }
@@ -485,11 +477,12 @@ contract ReentrancyAttacker {
     receive() external payable {
         if (!attacked) {
             attacked = true;
-            (bool success,) = address(axil).call(
-                abi.encodeWithSelector(
-                    axil.execute.selector, address(0), address(0), bytes32(0), block.timestamp, 0, ""
-                )
-            );
+            (bool success,) = address(axil)
+                .call(
+                    abi.encodeWithSelector(
+                        axil.execute.selector, address(0), address(0), bytes32(0), block.timestamp, 0, ""
+                    )
+                );
             console.log("Reentrancy attempt:", success ? "succeeded" : "blocked");
         }
     }

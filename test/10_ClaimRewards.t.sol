@@ -46,14 +46,7 @@ contract ClaimRewardsTest is Test {
         signer = vm.addr(SIGNER_KEY);
 
         vm.startPrank(admin);
-        axil = new AxilProtocolV1(
-            admin,
-            signer,
-            address(0x6),
-            address(0x7),
-            address(0x8),
-            keccak256("SALT")
-        );
+        axil = new AxilProtocolV1(admin, signer, address(0x6), address(0x7), address(0x8), keccak256("SALT"));
         vm.stopPrank();
 
         vm.deal(user, 100_000 ether);
@@ -78,16 +71,16 @@ contract ClaimRewardsTest is Test {
     }
 
     /// @notice Builds EIP-712 signature for execute transaction
-    function _buildExecuteSignature(
-        address recipient,
-        bytes32 intentId,
-        uint128 amount,
-        uint256 deadline,
-        uint128 salt
-    ) internal view returns (bytes memory) {
+    function _buildExecuteSignature(address recipient, bytes32 intentId, uint128 amount, uint256 deadline, uint128 salt)
+        internal
+        view
+        returns (bytes memory)
+    {
         bytes32 structHash = keccak256(
             abi.encode(
-                keccak256("Execute(address merchant,address user,bytes32 packedIntent,uint128 amount,uint256 deadline,uint128 salt,address agent)"),
+                keccak256(
+                    "Execute(address merchant,address user,bytes32 packedIntent,uint128 amount,uint256 deadline,uint128 salt,address agent)"
+                ),
                 admin,
                 recipient,
                 intentId,
@@ -131,7 +124,7 @@ contract ClaimRewardsTest is Test {
     function test_ClaimRewards_Success() public {
         _accrueRewards(user, INITIAL_REWARDS, keccak256("test1"));
 
-        (uint128 totalBefore, uint64 releaseBlock, , ) = axil.getRewardVault(user);
+        (uint128 totalBefore, uint64 releaseBlock,,) = axil.getRewardVault(user);
         assertTrue(totalBefore > 0, "Rewards should be accrued");
         assertTrue(releaseBlock > uint64(block.number), "Release block should be in future");
 
@@ -143,7 +136,7 @@ contract ClaimRewardsTest is Test {
 
         axil.claimRewards(totalBefore, keccak256("claim-1"));
 
-        (uint128 totalAfter, , , ) = axil.getRewardVault(user);
+        (uint128 totalAfter,,,) = axil.getRewardVault(user);
         assertEq(totalAfter, 0, "All rewards should be claimed");
     }
 
@@ -151,7 +144,7 @@ contract ClaimRewardsTest is Test {
     function test_RevertWhen_ClaimBeforeRelease() public {
         _accrueRewards(user, INITIAL_REWARDS, keccak256("test2"));
 
-        (uint128 totalBefore, , , ) = axil.getRewardVault(user);
+        (uint128 totalBefore,,,) = axil.getRewardVault(user);
         assertTrue(totalBefore > 0, "Rewards should be accrued before test");
 
         vm.prank(user);
@@ -163,7 +156,7 @@ contract ClaimRewardsTest is Test {
     function test_RevertWhen_ClaimAmountTooHigh() public {
         _accrueRewards(user, INITIAL_REWARDS, keccak256("test3"));
 
-        (uint128 totalBefore, , , ) = axil.getRewardVault(user);
+        (uint128 totalBefore,,,) = axil.getRewardVault(user);
 
         vm.roll(block.number + VESTING_BLOCKS + 1);
 
@@ -194,15 +187,15 @@ contract ClaimRewardsTest is Test {
             vm.warp(block.timestamp + 1); // Ensure unique salt
         }
 
-        (uint128 totalBefore, , , ) = axil.getRewardVault(user);
+        (uint128 totalBefore,,,) = axil.getRewardVault(user);
         assertTrue(totalBefore > MAX_CLAIM_LIMIT, "Should have more than limit");
 
         vm.roll(block.number + VESTING_BLOCKS + 1);
 
-vm.prank(user);
+        vm.prank(user);
         axil.claimRewards(totalBefore, keccak256("claim-5"));
 
-        (uint128 remaining, , , ) = axil.getRewardVault(user);
+        (uint128 remaining,,,) = axil.getRewardVault(user);
         assertEq(remaining, totalBefore - MAX_CLAIM_LIMIT, "Should have remaining rewards");
     }
 
@@ -210,7 +203,7 @@ vm.prank(user);
     function test_PartialClaim() public {
         _accrueRewards(user, 20 ether, keccak256("partial"));
 
-        (uint128 totalBefore, , , ) = axil.getRewardVault(user);
+        (uint128 totalBefore,,,) = axil.getRewardVault(user);
 
         vm.roll(block.number + VESTING_BLOCKS + 1);
 
@@ -218,7 +211,7 @@ vm.prank(user);
         vm.prank(user);
         axil.claimRewards(claimAmount, keccak256("claim-6"));
 
-        (uint128 remaining, , , ) = axil.getRewardVault(user);
+        (uint128 remaining,,,) = axil.getRewardVault(user);
         assertEq(remaining, totalBefore - claimAmount, "Should have remaining rewards");
     }
 
@@ -226,7 +219,7 @@ vm.prank(user);
     function test_ClaimZeroClaimsAll() public {
         _accrueRewards(user, 7 ether, keccak256("zero"));
 
-        (uint128 totalBefore, , , ) = axil.getRewardVault(user);
+        (uint128 totalBefore,,,) = axil.getRewardVault(user);
         assertTrue(totalBefore > 0, "Should have rewards before claim");
 
         vm.roll(block.number + VESTING_BLOCKS + 1);
@@ -234,7 +227,7 @@ vm.prank(user);
         vm.prank(user);
         axil.claimRewards(0, keccak256("claim-7"));
 
-        (uint128 remaining, , , ) = axil.getRewardVault(user);
+        (uint128 remaining,,,) = axil.getRewardVault(user);
         assertEq(remaining, 0, "All rewards should be claimed");
     }
 
@@ -244,7 +237,7 @@ vm.prank(user);
 
         vm.roll(block.number + VESTING_BLOCKS + 1);
 
-        (uint128 balance, , , ) = axil.getRewardVault(user);
+        (uint128 balance,,,) = axil.getRewardVault(user);
 
         vm.prank(user);
         vm.expectEmit(true, true, false, true);
@@ -258,7 +251,7 @@ vm.prank(user);
 
         vm.roll(block.number + VESTING_BLOCKS + 1);
 
-        (uint128 balance, , , ) = axil.getRewardVault(user);
+        (uint128 balance,,,) = axil.getRewardVault(user);
         assertTrue(balance > 0, "User should have rewards");
 
         vm.prank(attacker);
@@ -272,7 +265,7 @@ vm.prank(user);
 
         vm.roll(block.number + VESTING_BLOCKS + 1);
 
-        (uint128 balance, , , ) = axil.getRewardVault(user);
+        (uint128 balance,,,) = axil.getRewardVault(user);
         assertTrue(balance > 0, "User should have rewards before first claim");
 
         vm.prank(user);
@@ -290,7 +283,7 @@ vm.prank(user);
 
         _accrueRewards(user, paymentAmount, keccak256("calc"));
 
-        (uint128 totalAfter, , , ) = axil.getRewardVault(user);
+        (uint128 totalAfter,,,) = axil.getRewardVault(user);
         assertApproxEqAbs(totalAfter, expectedReward, 1, "Reward should be approximately 0.2% of payment");
     }
 }
