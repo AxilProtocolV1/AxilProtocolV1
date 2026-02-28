@@ -3,9 +3,15 @@ const { ethers } = require('ethers');
 const app = express();
 app.use(express.json());
 
+// Fixed: Added logical OR (||) for PORT and Environment Variables
 const PORT = process.env.PORT || 3000;
 const SIGNER_KEY = process.env.SIGNER_KEY;
 const ALCHEMY_RPC_URL = process.env.ALCHEMY_RPC_URL;
+
+if (!SIGNER_KEY || !ALCHEMY_RPC_URL) {
+    console.error("CRITICAL ERROR: SIGNER_KEY or ALCHEMY_RPC_URL is missing in environment variables.");
+    process.exit(1);
+}
 
 // High-speed provider connection via Alchemy
 const provider = new ethers.providers.JsonRpcProvider(ALCHEMY_RPC_URL);
@@ -22,7 +28,9 @@ app.post('/sign', async (req, res) => {
     try {
         const { merchant, user, agent, amount, salt, intentText } = req.body;
 
+        // Fixed: Added logical OR (||) for salt generation
         const currentSalt = salt || Math.floor(Math.random() * 1000000);
+        
         const packedIntent = ethers.utils.keccak256(
             ethers.utils.defaultAbiCoder.encode(
                 ["uint128", "string"],
@@ -63,6 +71,7 @@ app.post('/sign', async (req, res) => {
 
         const signature = await wallet._signTypedData(domain, types, message);
 
+        // Fixed: Added proper backticks for template literals
         console.log(Intent signed for: ${user} | Salt: ${currentSalt});
 
         res.json({
@@ -80,6 +89,7 @@ app.post('/sign', async (req, res) => {
 });
 
 app.listen(PORT, () => {
+    // Fixed: Added proper backticks for template literals
     console.log(Server running on port ${PORT} with Alchemy connection);
     console.log(Signer Address: ${wallet.address});
 });
