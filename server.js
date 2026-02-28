@@ -1,49 +1,42 @@
 const express = require('express');
 const { ethers } = require('ethers');
 const app = express();
-
 app.use(express.json());
 
-// Environment Variables
 const PORT = process.env.PORT || 3000;
 const SIGNER_KEY = process.env.SIGNER_KEY;
+const ALCHEMY_RPC_URL = process.env.ALCHEMY_RPC_URL;
 
-if (!SIGNER_KEY) {
-    console.error("CRITICAL ERROR: SIGNER_KEY is not defined in Environment Variables!");
-    process.exit(1);
-}
+// High-speed provider connection via Alchemy
+const provider = new ethers.providers.JsonRpcProvider(ALCHEMY_RPC_URL);
+const wallet = new ethers.Wallet(SIGNER_KEY, provider);
 
-// Initialize Wallet
-const wallet = new ethers.Wallet(SIGNER_KEY);
-const CONTRACT_ADDRESS = "0xB3A59e559B470Ce9Edc1Ccf70B912F8A021a4552";
+const CONTRACT = "0xB3A59e559B470Ce9Edc1Ccf70B912F8A021a4552";
 const CHAIN_ID = 10143;
 
-// Health check endpoint
 app.get('/', (req, res) => {
-    res.status(200).send('Axil Protocol Signer API is LIVE');
+    res.send('Axil Protocol Signer API with Alchemy Speed is running');
 });
 
-// Signing endpoint
 app.post('/sign', async (req, res) => {
     try {
         const { merchant, user, agent, amount, salt, intentText } = req.body;
 
-        // Generate packedIntent using Keccak256
         const currentSalt = salt || Math.floor(Math.random() * 1000000);
         const packedIntent = ethers.utils.keccak256(
             ethers.utils.defaultAbiCoder.encode(
                 ["uint128", "string"],
-                [currentSalt, intentText || "Axil Execution"]
+                [currentSalt, intentText || ""]
             )
         );
 
-        const deadline = Math.floor(Date.now() / 1000) + 86400; // 24h validity
+        const deadline = Math.floor(Date.now() / 1000) + 86400;
 
         const domain = {
             name: "AxilProtocolV1",
             version: "1",
             chainId: CHAIN_ID,
-            verifyingContract: CONTRACT_ADDRESS
+            verifyingContract: CONTRACT
         };
 
         const types = {
@@ -62,24 +55,22 @@ app.post('/sign', async (req, res) => {
             merchant,
             user,
             packedIntent,
-            amount: ethers.utils.parseUnits(amount.toString(), 18),
+            amount: ethers.utils.parseEther(amount.toString()),
             deadline,
             salt: currentSalt,
             agent
         };
 
-        // Sign EIP-712 Typed Data
         const signature = await wallet._signTypedData(domain, types, message);
 
-        console.log(Signed intent for user: ${user});
+        console.log(Intent signed for: ${user} | Salt: ${currentSalt});
 
         res.json({
             success: true,
             signature,
             packedIntent,
             deadline,
-            salt: currentSalt,
-            contract: CONTRACT_ADDRESS
+            salt: currentSalt
         });
 
     } catch (error) {
@@ -89,6 +80,6 @@ app.post('/sign', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(Axil Protocol Signer running on port ${PORT});
-    console.log(Admin Wallet: ${wallet.address});
+    console.log(Server running on port ${PORT} with Alchemy connection);
+    console.log(Signer Address: ${wallet.address});
 });
