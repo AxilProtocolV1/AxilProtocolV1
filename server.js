@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const { ethers } = require('ethers');
 const cors = require('cors');
 require('dotenv').config();
@@ -8,39 +8,57 @@ app.use(express.json());
 app.use(cors());
 
 const SIGNER_KEY = process.env.SIGNER_KEY;
-const ALCHEMY_RPC_URL = process.env.ALCHEMY_RPC_URL;
-
-if (!SIGNER_KEY || !ALCHEMY_RPC_URL) {
-    console.error("ERROR: Missing SIGNER_KEY or ALCHEMY_RPC_URL");
+if (!SIGNER_KEY) {
+    console.error("Missing SIGNER_KEY");
     process.exit(1);
 }
 
-const provider = new ethers.JsonRpcProvider(ALCHEMY_RPC_URL);
-const wallet = new ethers.Wallet(SIGNER_KEY, provider);
+const wallet = new ethers.Wallet(SIGNER_KEY);
+const CONTRACT_ADDR = "0xb3a59e559b470ce9edc1ccf70b912f8a021a4552";
 
 app.post('/sign', async (req, res) => {
     try {
-        const { merchant, user, agent, amount, salt, intentText } = req.body;
-        const domain = { name: "AxilProtocol", version: "1", chainId: 1, verifyingContract: merchant };
+        const { merchant, user, packedIntent, amount, deadline, salt, agent } = req.body;
+
+        const domain = {
+            name: "AxilProtocolV1",
+            version: "1",
+            chainId: 10143,
+            verifyingContract: CONTRACT_ADDR
+        };
+
         const types = {
-            Intent: [
+            Execute: [
+                { name: "merchant", type: "address" },
                 { name: "user", type: "address" },
-                { name: "agent", type: "address" },
-                { name: "amount", type: "uint256" },
-                { name: "salt", type: "uint256" },
-                { name: "intentText", type: "string" }
+                { name: "packedIntent", type: "bytes32" },
+                { name: "amount", type: "uint128" },
+                { name: "deadline", type: "uint256" },
+                { name: "salt", type: "uint128" },
+                { name: "agent", type: "address" }
             ]
         };
-        const value = { user, agent, amount: ethers.parseEther(amount.toString()), salt, intentText: intentText || "" };
+
+        const value = {
+            merchant,
+            user,
+            packedIntent,
+            amount: ethers.parseUnits(amount.toString(), "ether"),
+            deadline,
+            salt,
+            agent
+        };
+
         const signature = await wallet.signTypedData(domain, types, value);
-        console.log("Success: Signed for " + user);
+        
         res.json({ success: true, signature, signer: wallet.address });
+
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-app.get('/', (req, res) => res.send("Axil Protocol Signer API is Online"));
+app.get('/', (req, res) => res.send("Axil API Online"));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
