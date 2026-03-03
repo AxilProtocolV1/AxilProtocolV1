@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Axil Protocol | Execute Transaction</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+        }
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            width: 100%;
+            font-size: 18px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .btn:hover {
+            background: #764ba2;
+        }
+        .info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0 15px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        label {
+            font-weight: bold;
+            color: #333;
+        }
+        .hash {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            word-break: break-all;
+            margin-top: 15px;
+        }
+        .error {
+            color: #dc3545;
+            margin: 10px 0;
+        }
+        .badge {
+            background: #e6f7e6;
+            color: #0a5c0a;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2 style="text-align: center; color: #667eea;">Axil Protocol</h2>
+        <p style="text-align: center;">Execute Transaction</p>
+        
+        <div class="info">
+            <div><strong>Contract:</strong> 0xb3a59e559b470ce9edc1ccf70b912f8a021a4552</div>
+            <div><strong>Network:</strong> Monad Testnet (Chain ID: 10143)</div>
+            <div><strong>Your Address:</strong> <span id="userAddress">Not connected</span></div>
+        </div>
+        
+        <label>Amount (MON)</label>
+        <input type="number" id="amount" value="0.1" step="0.001">
+        
+        <label>Packed Intent</label>
+        <input type="text" id="packedIntent" value="0x0000000000000000000000000000000100000000000000000000000000000001" readonly>
+        
+        <label>Deadline</label>
+        <input type="number" id="deadline" value="1800000000">
+        <small>Current time: <span id="currentTime"></span></small>
+        
+        <label>Salt <span class="badge">auto-generated</span></label>
+        <input type="number" id="salt" readonly style="background: #f5f5f5;">
+        
+        <button class="btn" id="executeBtn">Execute Transaction</button>
+        
+        <div id="loading" style="display: none; text-align: center; margin: 20px 0;">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p>Processing...</p>
+        </div>
+        
+        <div id="result" style="display: none;" class="hash"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+    <script>
+        const CONTRACT_ADDR = "0xb3a59e559b470ce9edc1ccf70b912f8a021a4552";
+        const YOUR_ADDRESS = "0x8cFBB1eEaF94d5877E21D191cA95A520a8710A21";
+
+const RENDER_URL = "https://axilprotocolv1.onrender.com/sign";
+        
+        const ABI = [{
+            "inputs": [
+                {"name": "merchant", "type": "address"},
+                {"name": "user", "type": "address"},
+                {"name": "packedIntent", "type": "bytes32"},
+                {"name": "deadline", "type": "uint256"},
+                {"name": "salt", "type": "uint128"},
+                {"name": "signature", "type": "bytes"}
+            ],
+            "name": "execute",
+            "outputs": [],
+            "stateMutability": "payable",
+            "type": "function"
+        }];
+        
+        let web3;
+        let account;
+        
+        function generateSalt() {
+            return Math.floor(Math.random() * 1000000);
+        }
+        
+        window.onload = function() {
+            updateTime();
+            setInterval(updateTime, 1000);
+            document.getElementById('salt').value = generateSalt();
+            
+            if (window.ethereum) {
+                web3 = new Web3(window.ethereum);
+            }
+            
+            document.getElementById('executeBtn').onclick = executeTransaction;
+        };
+        
+        function updateTime() {
+            document.getElementById('currentTime').innerText = Math.floor(Date.now() / 1000);
+        }
+        
+        async function executeTransaction() {
+            const btn = document.getElementById('executeBtn');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            
+            btn.disabled = true;
+            loading.style.display = 'block';
+            result.style.display = 'none';
+            
+            try {
+                if (!window.ethereum) {
+                    throw new Error('MetaMask not installed');
+                }
+                
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                account = accounts[0];
+                document.getElementById('userAddress').innerText = account;
+                
+                const chainId = await web3.eth.getChainId();
+                if (chainId != 10143) {
+                    throw new Error('Please switch to Monad Testnet (Chain ID: 10143)');
+                }
+                
+                const amount = document.getElementById('amount').value;
+                const packedIntent = document.getElementById('packedIntent').value;
+                const deadline = parseInt(document.getElementById('deadline').value);
+                const salt = parseInt(document.getElementById('salt').value);
+                
+                const response = await fetch(RENDER_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        merchant: YOUR_ADDRESS,
+                        user: YOUR_ADDRESS,
+                        packedIntent: packedIntent,
+                        amount: amount,
+                        deadline: deadline,
+                        salt: salt,
+                        agent: YOUR_ADDRESS
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to get signature');
+                }
+                
+                const contract = new web3.eth.Contract(ABI, CONTRACT_ADDR);
+                
+                const tx = await contract.methods.execute(
+                    YOUR_ADDRESS,
+                    YOUR_ADDRESS,
+                    packedIntent,
+                    deadline,
+                    salt,
+                    data.signature
+
+).send({
+                    from: account,
+                    value: web3.utils.toWei(amount, 'ether')
+                });
+                
+                result.innerHTML = 'Transaction successful!<br>' +
+                    '<a href="https://monad-testnet.socialscan.io/tx/' + tx.transactionHash + '" target="_blank">' +
+                    tx.transactionHash + '</a>';
+                result.style.display = 'block';
+                
+                // Генерируем новый salt для следующей транзакции
+                document.getElementById('salt').value = generateSalt();
+                
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
