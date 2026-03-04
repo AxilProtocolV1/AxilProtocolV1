@@ -11,29 +11,29 @@ forge build --optimize --optimizer-runs 1000000
 forge test -vvvv
 
 # 01: Initialization & Role-based access tests
-forge test --match-contract InitializationTest -vvv
-forge test --match-path test/01_Setup.t.sol -vv
+forge test --match-contract InitializationTest -vvvv
+forge test --match-path test/01_Setup.t.sol -vvvv
 
 # 02: Core X402 payment execution logic
-forge test --match-contract X402ExecutionTest -vvv
-forge test --match-path test/02_Execution.t.sol -vv
+forge test --match-contract X402ExecutionTest -vvvv
+forge test --match-path test/02_Execution.t.sol -vvvv
 
 # 03: EIP-712 Signature validation & Cryptography
-forge test --match-path test/03_Signatures.t.sol -vv
+forge test --match-path test/03_Signatures.t.sol -vvvv
 
 # 04: Reward vaulting and claiming systems
-forge test --match-path test/04_Claims.t.sol -vv
+forge test --match-path test/04_Claims.t.sol -vvvv
 
 # 05: "Apocalypse" Stress Test (1 billion+ gas simulation)
-forge test --match-path test/05_Nuclear_Apocalypse.t.sol -vv
+forge test --match-path test/05_Nuclear_Apocalypse.t.sol -vvvv
 
 # 06: Nuclear Security & Reentrancy protection
-forge test --match-path test/_06_NuclearSecurity.t.sol -vvv
-forge test --match-path test/06_NuclearSecurity.t.sol -vv
+forge test --match-path test/_06_NuclearSecurity.t.sol -vvvv
+forge test --match-path test/06_NuclearSecurity.t.sol -vvvv
 
 # 07: Deep Fuzzing (1M to 10M iterations)
 forge test --match-contract FuzzTest --fuzz-runs 1000000 -vvvv
-forge test --match-contract FuzzTest --fuzz-runs 10000000 -vv
+forge test --match-contract FuzzTest --fuzz-runs 10000000 -vvvv
 forge test --match-path test/07_DeepFuzz.t.sol -vv
 
 Security & Cryptographic Integrity
